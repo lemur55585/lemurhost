@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lemur Host — Domeny i strony WWW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0A08;
+    --surface: #17130E99;
+    --surface-solid: #171310;
+    --line: #33291A;
+    --text: #F2ECDD;
+    --text-dim: #A89B80;
+    --gold: #E0A458;
+    --gold-dim: #E0A45855;
+    --teal: #8A6530;
+    --glow-live: #F0C36B;
+    --glow-taken: #6B5B3D;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, #241D0F 0%, transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, #1C160B88 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
+
+  header{
+    position: sticky; top:0; z-index:50;
+    backdrop-filter: blur(10px);
+    background: #0B0A08D9;
+    border-bottom: 1px solid var(--line);
+  }
+  nav.wrap{ display:flex; align-items:center; justify-content:space-between; height:76px; }
+  .logo{display:flex; align-items:center; gap:10px; font-family:'Space Grotesk'; font-weight:700; font-size:1.15rem; letter-spacing:.01em;}
+  .logo-mark{
+    width:26px; height:26px; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, var(--gold) 0%, #8a6530 60%, transparent 61%);
+    position:relative; flex-shrink:0;
+    box-shadow: 0 0 12px 1px #E0A45855;
+  }
+  .logo-mark::after{ content:''; position:absolute; width:6px; height:6px; border-radius:50%; background:#0B0A08; top:8px; left:8px; }
+  nav ul{display:flex; gap:34px; list-style:none;}
+  nav ul li a{font-size:.92rem; color:var(--text-dim); transition:color .15s;}
+  nav ul li a:hover{color:var(--text);}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:11px 20px; border-radius:var(--radius);
+    font-size:.9rem; font-weight:600; font-family:'Inter';
+    cursor:pointer; border:1px solid transparent; transition: all .15s ease;
+  }
+  .btn-primary{ background:var(--gold); color:#0B0A08; }
+  .btn-primary:hover{ background:#EEB56E; transform: translateY(-1px); }
+  .btn-ghost{ border-color:var(--line); color:var(--text); }
+  .btn-ghost:hover{ border-color:var(--teal); }
+  .btn-dark{ background:#0B0A08; color:var(--gold); border:1px solid var(--gold); }
+  .btn-dark:hover{ background:#171310; transform: translateY(-1px); }
+  .btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .hero{ padding: 96px 0 88px; }
+  .eyebrow{
+    font-family:'IBM Plex Mono'; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
+    color: var(--teal); margin-bottom:22px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--glow-live); box-shadow:0 0 8px 2px var(--glow-live);}
+  h1{
+    font-family:'Space Grotesk'; font-weight:700;
+    font-size: clamp(2.3rem, 4.6vw, 3.6rem);
+    line-height:1.08; letter-spacing:-.01em;
+    max-width: 780px; margin-bottom: 22px;
+  }
+  h1 em{ font-style:normal; color: var(--gold); }
+  .hero-sub{ font-size:1.08rem; color:var(--text-dim); max-width:560px; margin-bottom:40px; }
+  .hero-actions{display:flex; gap:14px; margin-bottom:64px; flex-wrap:wrap;}
+
+  .checker{
+    border:1px solid var(--line); border-radius:6px;
+    background: linear-gradient(180deg, #17140F, #0D0B08);
+    padding: 22px; max-width: 620px;
+  }
+  .checker-row{ display:flex; gap:10px; }
+  .checker-row input{
+    flex:1; background:#0C0A07; border:1px solid var(--line); border-radius:var(--radius);
+    padding:13px 14px; color:var(--text); font-family:'IBM Plex Mono'; font-size:.92rem;
+  }
+  .checker-row input:focus{ outline:none; border-color:var(--teal); }
+  .checker-row input::placeholder{ color:#6E6350; }
+  .checker-row button{
+    background:var(--teal); color:#0B1513; border:none; border-radius:var(--radius);
+    padding: 0 20px; font-weight:600; font-family:'Inter'; font-size:.88rem; cursor:pointer;
+  }
+  .checker-row button:hover{ background:#72B0A8; }
+  .checker-results{ margin-top:16px; display:flex; flex-direction:column; gap:9px; min-height: 20px;}
+  .result-line{
+    display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono'; font-size:.86rem;
+    color:var(--text-dim); animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:translateY(0);} }
+  .eyeshine{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .eyeshine.live, .eyeshine.available{ background:var(--glow-live); box-shadow:0 0 7px 2px #F0C36B88; }
+  .eyeshine.taken{ background:var(--glow-taken); box-shadow:0 0 7px 2px #6B5B3D88; }
+  .eyeshine.unknown{ background:#6E6350; box-shadow:none; }
+  .result-status{ margin-left:auto; font-size:.78rem; }
+  .result-status.live, .result-status.available{ color:var(--glow-live); }
+  .result-status.taken{ color:var(--glow-taken); }
+  .result-status.unknown{ color:#6E6350; }
+  .checker-hint{ font-size:.75rem; color:#6E6350; margin-top:12px; }
+
+  section{ padding: 78px 0; border-top:1px solid var(--line); }
+  .section-head{ max-width:600px; margin-bottom:48px; }
+  .section-eyebrow{ font-family:'IBM Plex Mono'; font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
+  h2{ font-family:'Space Grotesk'; font-size:clamp(1.7rem,2.6vw,2.2rem); font-weight:600; margin-bottom:14px; }
+  .section-head p{ color:var(--text-dim); font-size:1rem; }
+
+  .services{ display:grid; grid-template-columns: 1fr 1fr; gap:22px; }
+  .service-card{ border:1px solid var(--line); border-radius:6px; padding:32px; background: var(--surface); transition: border-color .2s; }
+  .service-card:hover{ border-color: var(--teal); }
+  .service-card .tag{ font-family:'IBM Plex Mono'; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--teal); margin-bottom:16px; display:block;}
+  .service-card h3{ font-family:'Space Grotesk'; font-size:1.35rem; margin-bottom:12px; font-weight:600;}
+  .service-card p{ color:var(--text-dim); font-size:.94rem; margin-bottom:20px; }
+  .service-card ul{ list-style:none; display:flex; flex-direction:column; gap:9px; }
+  .service-card ul li{ font-size:.88rem; color:var(--text); display:flex; gap:9px; align-items:baseline; }
+  .service-card ul li::before{ content:'—'; color:var(--gold); flex-shrink:0; }
+
+  .process{ display:grid; grid-template-columns: repeat(4,1fr); gap:0; }
+  .step{ padding:0 22px 0 0; position:relative; }
+  .step:not(:last-child)::after{ content:''; position:absolute; top:18px; right:0; width:22px; height:1px; background:var(--line); }
+  .step-num{ font-family:'IBM Plex Mono'; color:var(--gold); font-size:.85rem; margin-bottom:14px; }
+  .step h4{ font-family:'Space Grotesk'; font-size:1.02rem; margin-bottom:8px; font-weight:600; }
+  .step p{ color:var(--text-dim); font-size:.86rem; }
+
+  .pricing{ display:grid; grid-template-columns: repeat(3,1fr); gap:20px; }
+  .calc-card{ border:1px solid var(--line); border-radius:6px; padding:28px; display:flex; flex-direction:column; gap:16px; background: var(--surface); }
+  .calc-card.featured{ border-color:var(--gold); background:#E0A45810; }
+  .calc-card .plan{ font-family:'IBM Plex Mono'; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); }
+  .calc-card .calc-custom-text{ color:var(--text-dim); font-size:.9rem; flex:1; }
+  .calc-row{ display:flex; flex-direction:column; gap:10px; }
+  .calc-row-head{ display:flex; justify-content:space-between; align-items:baseline; }
+  .calc-row-head label{ font-size:.85rem; color:var(--text-dim); }
+  .calc-value{ font-size:.88rem; color:var(--gold); }
+
+  input[type="range"]{ -webkit-appearance:none; appearance:none; width:100%; height:3px; border-radius:2px; background: var(--line); outline:none; }
+  input[type="range"]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background: var(--gold); cursor:pointer; border: 3px solid #0B0A08; box-shadow: 0 0 0 1px var(--gold); }
+  input[type="range"]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background: var(--gold); cursor:pointer; border: 3px solid #0B0A08; box-shadow: 0 0 0 1px var(--gold); }
+
+  .toggle-group{ display:flex; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  .toggle-btn{ flex:1; padding:9px 10px; background:transparent; border:none; color:var(--text-dim); font-family:'Inter'; font-size:.82rem; font-weight:600; cursor:pointer; transition: all .15s; }
+  .toggle-btn + .toggle-btn{ border-left:1px solid var(--line); }
+  .toggle-btn.active{ background:var(--gold); color:#0B0A08; }
+  .toggle-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:-2px; }
+
+  .calc-price{ font-family:'Space Grotesk'; font-size:1.9rem; font-weight:700; }
+  .calc-price-note{ font-size:.9rem; color:var(--text-dim); font-weight:400; font-family:'Inter'; }
+  .calc-note{ font-size:.78rem; color:var(--text-dim); line-height:1.5; }
+
+  .cta-band{ border-top:1px solid var(--line); padding: 88px 0; text-align:center; }
+  .cta-band h2{ margin-bottom:16px; }
+  .cta-band p{ color:var(--text-dim); max-width:480px; margin:0 auto 34px; }
+
+  footer{ border-top:1px solid var(--line); padding: 36px 0; }
+  footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  footer .fine{ font-size:.8rem; color:#6E6350; }
+
+  @media (max-width: 860px){
+    nav ul{ display:none; }
+    .services{ grid-template-columns:1fr; }
+    .process{ grid-template-columns: 1fr 1fr; gap:28px 0; }
+    .step:nth-child(2)::after{ display:none; }
+    .pricing{ grid-template-columns:1fr; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    .result-line{ animation:none; }
+  }
+
+  /* ---------- widok zamówienia ---------- */
+  #orderView{ display:none; }
+  .order-wrap{ max-width:640px; margin:0 auto; padding:56px 24px 90px; }
+  .order-wrap a{ color:var(--gold); }
+  .order-wrap h1{ font-size:2rem; max-width:none; margin-bottom:10px; }
+  .back-link{ font-size:.85rem; color:var(--text-dim); display:inline-block; margin-bottom:28px; cursor:pointer; }
+  .order-sub{ color:var(--text-dim); margin-bottom:14px; }
+  .order-wrap fieldset{ border:none; margin-bottom:28px; }
+  .order-wrap legend{ font-family:'IBM Plex Mono'; font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-bottom:14px; }
+  .order-wrap label{ display:block; font-size:.88rem; color:var(--text-dim); margin-bottom:6px; }
+  .order-wrap .field{ margin-bottom:18px; }
+  .order-wrap input[type="text"], .order-wrap input[type="email"], .order-wrap select, .order-wrap textarea{
+    width:100%; background:#0C0A07; border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; color:var(--text); font-family:'Inter'; font-size:.95rem;
+  }
+  .order-wrap textarea{ resize:vertical; min-height:90px; font-family:'Inter'; }
+  .order-wrap input:focus, .order-wrap select:focus, .order-wrap textarea:focus{ outline:none; border-color:var(--gold); }
+
+  .type-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .type-opt{ position:relative; }
+  .type-opt input{ position:absolute; opacity:0; }
+  .type-opt label{
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    border:1px solid var(--line); border-radius:var(--radius); padding:14px 8px;
+    color:var(--text); font-size:.85rem; cursor:pointer; transition: all .15s; margin:0; min-height:52px;
+  }
+  .type-opt input:checked + label{ border-color:var(--gold); background:#E0A45815; color:var(--gold); }
+
+  .order-panel{ display:none; border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--surface); }
+  .order-panel.active{ display:block; }
+  .order-row{ display:flex; gap:14px; }
+  .order-row .field{ flex:1; }
+
+  .slider-head{ display:flex; justify-content:space-between; margin-bottom:8px; }
+  .slider-head span{ font-family:'IBM Plex Mono'; color:var(--gold); font-size:.85rem; }
+
+  .price-preview{ margin-top:24px; padding-top:18px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:baseline; }
+  .price-preview .amount{ font-family:'Space Grotesk'; font-size:1.6rem; font-weight:700; color:var(--gold); }
+
+  .order-submit-btn{
+    width:100%; padding:15px; margin-top:8px; background:var(--gold); color:#0B0A08;
+    border:none; border-radius:var(--radius); font-weight:700; font-size:1rem; cursor:pointer;
+  }
+  .order-submit-btn:hover{ background:#EEB56E; }
+  .order-submit-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .order-hint{ font-size:.78rem; color:var(--text-dim); margin-top:10px; }
+
+  .order-confirm{ display:none; border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--surface); }
+  .order-confirm.active{ display:block; }
+  .order-confirm .code{ font-family:'IBM Plex Mono'; font-size:1.2rem; color:var(--gold); letter-spacing:.05em; }
+  .order-confirm .amount{ font-family:'Space Grotesk'; font-size:1.6rem; font-weight:700; margin:10px 0; }
+  .order-confirm .btn{ display:inline-block; margin-top:14px; }
+  .order-error{ display:none; border:1px solid #6B3D3D; background:#3B1A1A55; border-radius:6px; padding:16px 18px; margin-top:16px; font-size:.88rem; }
+  .order-error.active{ display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <div class="logo"><span class="logo-mark"></span>Lemur Host</div>
+    <ul>
+      <li><a href="#domeny" onclick="showHome()">Domeny</a></li>
+      <li><a href="#strony" onclick="showHome()">Strony WWW</a></li>
+      <li><a href="#cennik" onclick="showHome()">Cennik</a></li>
+      <li><a href="#zamow" onclick="showHome()">Kontakt</a></li>
+    </ul>
+    <a href="#" onclick="showOrder(); return false;" class="btn btn-primary">Zamów online</a>
+  </nav>
+</header>
+
+<main>
+<div id="homeView">
+  <section class="hero wrap" style="border:none;">
+    <div class="eyebrow">Nowe zamówienia przyjmowane</div>
+    <h1>Domeny i strony WWW, <em>zamawiane tam, gdzie już jesteś.</em></h1>
+    <p class="hero-sub">Lemur Host zajmuje się rejestracją domen i hostingiem stron internetowych. Bez formularzy i skomplikowanych paneli — całe zamówienie prowadzimy na Discordzie, krok po kroku.</p>
+    <div class="hero-actions">
+      <a href="#" onclick="showOrder(); return false;" class="btn btn-primary">Zamów teraz →</a>
+      <a href="#strony" class="btn btn-ghost">Zobacz ofertę</a>
+    </div>
+
+    <div class="checker">
+      <div class="checker-row">
+        <input type="text" id="domainInput" class="mono" placeholder="np. twojadomena.pl" aria-label="Sprawdź dostępność domeny">
+        <button id="checkBtn">Sprawdź</button>
+      </div>
+      <div class="checker-results" id="checkerResults"></div>
+      <div class="checker-hint">Sprawdzanie na żywo, bezpośrednio w rejestrach domen (protokół RDAP). Rejestrację finalizujemy na Discordzie.</div>
+    </div>
+  </section>
+
+  <section id="domeny">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Co robimy</div>
+        <h2>Dwie usługi, zero zbędnych dodatków</h2>
+        <p>Skupiamy się na dwóch rzeczach i robimy je porządnie.</p>
+      </div>
+      <div class="services">
+        <div class="service-card" id="domeny-card">
+          <span class="tag">Domeny</span>
+          <h3>Rejestracja i przekierowania</h3>
+          <p>Znajdujemy i zabezpieczamy adres, pod którym Twój projekt będzie rozpoznawalny.</p>
+          <ul>
+            <li>Sprawdzenie dostępności w kilku rozszerzeniach</li>
+            <li>Rejestracja i odnowienia pod opieką</li>
+            <li>Przekierowania i podłączenie do istniejącej strony</li>
+            <li>Pomoc przy sporach o nazwę</li>
+          </ul>
+        </div>
+        <div class="service-card" id="strony">
+          <span class="tag">Strony WWW</span>
+          <h3>Hosting i uruchomienie</h3>
+          <p>Masz już gotową stronę? Wgrywamy ją na serwer i utrzymujemy w gotowości.</p>
+          <ul>
+            <li>Wgranie gotowych plików strony (HTML, WordPress i inne)</li>
+            <li>Połączenie z domeną</li>
+            <li>Utrzymanie i kopie zapasowe</li>
+            <li>Wsparcie techniczne po uruchomieniu</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Jak to działa</div>
+        <h2>Cztery kroki do gotowej usługi</h2>
+        <p>Zamówienie wypełniasz na stronie, resztę ustalamy na Discordzie.</p>
+      </div>
+      <div class="process">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h4>Wypełniasz formularz</h4>
+          <p>Wybierasz domenę, hosting albo oba — cena liczy się na żywo.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h4>Zamówienie trafia na Discord</h4>
+          <p>Dostajesz numer zamówienia od razu po wysłaniu.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h4>Płacisz</h4>
+          <p>Przez Tipply, podając numer zamówienia w wiadomości.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <h4>Realizacja</h4>
+          <p>Płatność i otrzymanie danych do logowania.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cennik">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Cennik</div>
+        <h2>Przesuń suwak, zobacz cenę</h2>
+        <p>Realne ceny, przeliczane na żywo. Dokładne ustalenia i tak zapadają na Discordzie.</p>
+      </div>
+      <div class="pricing">
+
+        <div class="calc-card">
+          <span class="plan">Domena</span>
+          <div class="calc-row">
+            <div class="calc-row-head">
+              <label for="domainYears">Liczba lat</label>
+              <span class="calc-value mono" id="domainYearsLabel">1 rok</span>
+            </div>
+            <input type="range" id="domainYears" min="1" max="10" step="1" value="1">
+          </div>
+          <div class="calc-price"><span id="domainPrice">60</span> zł<span class="calc-price-note"> łącznie</span></div>
+          <a href="#" onclick="showOrder('domena'); return false;" class="btn btn-ghost">Zarejestruj domenę</a>
+        </div>
+
+        <div class="calc-card">
+          <span class="plan">Hosting strony</span>
+          <div class="calc-row">
+            <div class="calc-row-head">
+              <label for="hostingPlan">Przestrzeń dyskowa</label>
+              <span class="calc-value mono" id="hostingPlanLabel">10 GB</span>
+            </div>
+            <input type="range" id="hostingPlan" min="0" max="9" step="1" value="0">
+          </div>
+          <div class="toggle-group" id="hostingPeriod">
+            <button type="button" class="toggle-btn active" data-period="month">Miesięcznie</button>
+            <button type="button" class="toggle-btn" data-period="year">Rocznie</button>
+          </div>
+          <div class="calc-price"><span id="hostingPrice">10</span> zł<span class="calc-price-note" id="hostingPriceUnit"> / mies.</span></div>
+          <a href="#" onclick="showOrder('hosting'); return false;" class="btn btn-dark">Zamów hosting</a>
+        </div>
+
+        <div class="calc-card">
+          <span class="plan">Strona custom</span>
+          <p class="calc-custom-text">Potrzebujesz innej przestrzeni albo innych zasobów niż w standardowych planach? Dobierzemy je razem, indywidualnie, na Discordzie.</p>
+          <a href="#" onclick="showOrder('custom'); return false;" class="btn btn-ghost">Omów zasoby custom</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band" id="zamow" style="border-top:1px solid var(--line);">
+    <div class="wrap">
+      <h2>Gotowy na własny adres w sieci?</h2>
+      <p>Wypełnij formularz zamówienia — dostaniesz numer i dalsze instrukcje od razu.</p>
+      <a href="#" onclick="showOrder(); return false;" class="btn btn-primary">Przejdź do zamówienia →</a>
+    </div>
+  </section>
+</div>
+
+<div id="orderView">
+  <div class="order-wrap">
+    <span class="back-link" onclick="showHome()">← Strona główna</span>
+    <h1>Złóż zamówienie</h1>
+    <p class="order-sub">Wybierz usługę, sprawdź cenę na żywo i wyślij zamówienie — trafi prosto na nasz Discord.</p>
+    <p class="order-sub" style="margin-top:-10px;">Masz pytania albo potrzebujesz czegoś nietypowego? Napisz na <a href="https://discord.gg/w6g7RyTkEa" target="_blank" rel="noopener">Discordzie</a>.</p>
+
+    <form id="orderForm">
+
+      <fieldset>
+        <legend>Co zamawiasz?</legend>
+        <div class="type-grid">
+          <div class="type-opt"><input type="radio" name="typ" id="typ-domena" value="domena" checked><label for="typ-domena">Domena</label></div>
+          <div class="type-opt"><input type="radio" name="typ" id="typ-hosting" value="hosting"><label for="typ-hosting">Hosting</label></div>
+          <div class="type-opt"><input type="radio" name="typ" id="typ-oba" value="oba"><label for="typ-oba">Oba</label></div>
+          <div class="type-opt"><input type="radio" name="typ" id="typ-custom" value="custom"><label for="typ-custom">Custom</label></div>
+        </div>
+      </fieldset>
+
+      <div id="section-domena" class="order-panel">
+        <div class="field">
+          <label for="domena_nazwa">Nazwa domeny (bez rozszerzenia)</label>
+          <input type="text" id="domena_nazwa" placeholder="np. twojadomena">
+        </div>
+        <div class="order-row">
+          <div class="field">
+            <label for="domena_rozszerzenie">Rozszerzenie</label>
+            <select id="domena_rozszerzenie">
+              <option value=".com">.com</option>
+              <option value=".net">.net</option>
+              <option value=".org">.org</option>
+              <option value=".com.pl">.com.pl</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <div class="slider-head"><label style="margin:0;">Liczba lat</label><span id="domenaLataVal">1 rok</span></div>
+          <input type="range" id="domena_lata" min="1" max="10" step="1" value="1">
+        </div>
+      </div>
+
+      <div id="section-hosting" class="order-panel">
+        <div class="field">
+          <div class="slider-head"><label style="margin:0;">Przestrzeń dyskowa</label><span id="hostingGbVal">10 GB</span></div>
+          <input type="range" id="hosting_gb_slider" min="0" max="9" step="1" value="0">
+        </div>
+        <div class="toggle-group" id="hostingOkresGroup">
+          <button type="button" class="toggle-btn active" data-v="month">Miesięcznie</button>
+          <button type="button" class="toggle-btn" data-v="year">Rocznie</button>
+        </div>
+      </div>
+
+      <div id="section-custom" class="order-panel">
+        <div class="field">
+          <label for="custom_opis">Opisz, czego potrzebujesz</label>
+          <textarea id="custom_opis" placeholder="Np. większa przestrzeń, dodatkowe funkcje, kilka domen naraz..."></textarea>
+        </div>
+      </div>
+
+      <fieldset style="margin-top:28px;">
+        <legend>Dane kontaktowe</legend>
+        <div class="order-row">
+          <div class="field">
+            <label for="imie">Imię / nick</label>
+            <input type="text" id="imie" required>
+          </div>
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="uwagi">Uwagi (opcjonalnie)</label>
+          <textarea id="uwagi"></textarea>
+        </div>
+      </fieldset>
+
+      <div class="price-preview" id="pricePreview">
+        <span>Szacowana cena</span>
+        <span class="amount" id="priceAmount">60 zł</span>
+      </div>
+
+      <button type="submit" class="order-submit-btn" id="submitBtn">Złóż zamówienie</button>
+      <p class="order-hint">Zamówienie trafia bezpośrednio na nasz Discord. Po jego przyjęciu dostaniesz numer zamówienia i link do płatności.</p>
+      <div class="order-error" id="errorBox">Nie udało się wysłać zamówienia. Spróbuj ponownie albo napisz bezpośrednio na <a href="https://discord.gg/w6g7RyTkEa" target="_blank" rel="noopener">Discordzie</a>.</div>
+    </form>
+
+    <div class="order-confirm" id="confirmBox">
+      <h2 style="font-family:'Space Grotesk'; margin-bottom:14px;">Zamówienie wysłane!</h2>
+      <p>Numer zamówienia: <span class="code" id="confirmCode"></span></p>
+      <div class="amount" id="confirmAmount"></div>
+      <p style="color:var(--text-dim); font-size:.9rem;">W wiadomości płatności na Tipply koniecznie podaj ten numer zamówienia.</p>
+      <a href="https://tipply.pl/@lemurhost" class="btn btn-primary" target="_blank" rel="noopener" id="tipplyBtn">Zapłać przez Tipply →</a>
+      <p style="margin-top:20px;"><span class="back-link" onclick="showHome()" style="margin-bottom:0;">← Wróć na stronę główną</span></p>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="logo" style="font-size:1rem;"><span class="logo-mark" style="width:20px;height:20px;"></span>Lemur Host</div>
+    <div class="fine">© 2026 Lemur Host. Zamówienia przez stronę i Discord.</div>
+  </div>
+</footer>
+
+<script>
+  function showOrder(typ){
+    document.getElementById('homeView').style.display = 'none';
+    document.getElementById('orderView').style.display = 'block';
+    window.scrollTo(0, 0);
+    if (typ && ['domena','hosting','oba','custom'].includes(typ)) {
+      const radio = document.getElementById('typ-' + typ);
+      if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+    }
+  }
+  function showHome(){
+    document.getElementById('orderView').style.display = 'none';
+    document.getElementById('homeView').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script>
+  const exts = ['.com', '.net', '.org', '.com.pl'];
+  const input = document.getElementById('domainInput');
+  const btn = document.getElementById('checkBtn');
+  const results = document.getElementById('checkerResults');
+
+  function makeLine(domain){
+    const line = document.createElement('div');
+    line.className = 'result-line';
+    line.dataset.domain = domain;
+    line.innerHTML = `
+      <span class="eyeshine" style="background:#6E6350; box-shadow:none;"></span>
+      <span>${domain}</span>
+      <span class="result-status" style="color:#6E6350;">sprawdzam…</span>
+    `;
+    return line;
+  }
+
+  function setLineState(line, state, label){
+    const dot = line.querySelector('.eyeshine');
+    const status = line.querySelector('.result-status');
+    dot.className = 'eyeshine ' + state;
+    status.className = 'result-status ' + state;
+    status.textContent = label;
+  }
+
+  async function checkDomain(domain){
+    const res = await fetch('https://rdap.org/domain/' + domain, { headers: { 'Accept': 'application/rdap+json' } });
+    if (res.status === 404) return 'available';
+    if (res.ok) return 'taken';
+    throw new Error('status ' + res.status);
+  }
+
+  async function runCheck(){
+    const raw = input.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+    if(!raw){ input.focus(); return; }
+    results.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Sprawdzam…';
+
+    const hasExtension = raw.includes('.');
+    const domains = hasExtension ? [raw] : exts.map(ext => raw + ext);
+
+    const lines = domains.map(domain => {
+      const line = makeLine(domain);
+      results.appendChild(line);
+      return { domain, line };
+    });
+
+    await Promise.all(lines.map(async ({ domain, line }) => {
+      try {
+        const state = await checkDomain(domain);
+        setLineState(line, state, state === 'available' ? 'dostępna' : 'zajęta');
+      } catch (err) {
+        setLineState(line, 'unknown', 'brak danych');
+      }
+    }));
+
+    btn.disabled = false;
+    btn.textContent = 'Sprawdź';
+  }
+
+  btn.addEventListener('click', runCheck);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') runCheck(); });
+</script>
+
+<script>
+  function domainPrice(years){
+    const base = { 1: 60, 2: 65, 3: 85, 4: 140 };
+    if (years <= 4) return base[years];
+    return 140 + 60 * (years - 4);
+  }
+
+  const domainYears = document.getElementById('domainYears');
+  const domainYearsLabel = document.getElementById('domainYearsLabel');
+  const domainPriceEl = document.getElementById('domainPrice');
+
+  function updateDomainCalc(){
+    const years = parseInt(domainYears.value, 10);
+    domainYearsLabel.textContent = years === 1 ? '1 rok' : (years < 5 ? years + ' lata' : years + ' lat');
+    domainPriceEl.textContent = domainPrice(years);
+  }
+  domainYears.addEventListener('input', updateDomainCalc);
+  updateDomainCalc();
+
+  const hostingPlans = [
+    { label: '10 GB', gb: 10, month: 10, year: 100 },
+    { label: '20 GB', gb: 20, month: 20, year: 200 },
+    { label: '30 GB', gb: 30, month: 30, year: 300 },
+    { label: '40 GB', gb: 40, month: 50, year: 500 },
+    { label: '50 GB', gb: 50, month: 80, year: 800 },
+    { label: '60 GB', gb: 60, month: 90, year: 900 },
+    { label: '70 GB', gb: 70, month: 100, year: 1000 },
+    { label: '80 GB', gb: 80, month: 120, year: 1200 },
+    { label: '90 GB', gb: 90, month: 140, year: 1400 },
+    { label: '100 GB', gb: 100, month: 150, year: 1500 }
+  ];
+  const hostingPlan = document.getElementById('hostingPlan');
+  const hostingPlanLabel = document.getElementById('hostingPlanLabel');
+  const hostingPrice = document.getElementById('hostingPrice');
+  const hostingPriceUnit = document.getElementById('hostingPriceUnit');
+  const periodButtons = document.querySelectorAll('#hostingPeriod .toggle-btn');
+  let hostingPeriodHome = 'month';
+
+  function updateHostingCalc(){
+    const plan = hostingPlans[parseInt(hostingPlan.value, 10)];
+    hostingPlanLabel.textContent = plan.label;
+    hostingPrice.textContent = hostingPeriodHome === 'month' ? plan.month : plan.year;
+    hostingPriceUnit.textContent = hostingPeriodHome === 'month' ? ' / mies.' : ' / rok';
+  }
+  hostingPlan.addEventListener('input', updateHostingCalc);
+  periodButtons.forEach(b => b.addEventListener('click', () => {
+    periodButtons.forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    hostingPeriodHome = b.dataset.period;
+    updateHostingCalc();
+  }));
+  updateHostingCalc();
+</script>
+
+<script>
+  (function(){
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1525558768631287958/XCao1bOPQbQf5hq32azBBA1rkJq_ES0tP5vSpAlFBzb0Hb34GGoz_oqGD4qQJc2nr0xg';
+    const TIPPLY_URL = 'https://tipply.pl/@lemurhost';
+
+    const domainPriceFn = years => {
+      const base = {1:60, 2:65, 3:85, 4:140};
+      return years <= 4 ? base[years] : 140 + 60 * (years - 4);
+    };
+    const plans = [
+      {gb:10,month:10,year:100},{gb:20,month:20,year:200},{gb:30,month:30,year:300},
+      {gb:40,month:50,year:500},{gb:50,month:80,year:800},{gb:60,month:90,year:900},
+      {gb:70,month:100,year:1000},{gb:80,month:120,year:1200},{gb:90,month:140,year:1400},{gb:100,month:150,year:1500}
+    ];
+
+    const typeRadios = document.querySelectorAll('input[name="typ"]');
+    const sections = { domena: document.getElementById('section-domena'), hosting: document.getElementById('section-hosting'), custom: document.getElementById('section-custom') };
+    const pricePreview = document.getElementById('pricePreview');
+    const priceAmount = document.getElementById('priceAmount');
+
+    function currentType(){ return document.querySelector('input[name="typ"]:checked').value; }
+
+    function updateSections(){
+      const t = currentType();
+      Object.values(sections).forEach(el => el.classList.remove('active'));
+      if (t === 'domena') sections.domena.classList.add('active');
+      if (t === 'hosting') sections.hosting.classList.add('active');
+      if (t === 'oba') { sections.domena.classList.add('active'); sections.hosting.classList.add('active'); }
+      if (t === 'custom') sections.custom.classList.add('active');
+      pricePreview.style.display = t === 'custom' ? 'none' : 'flex';
+      updatePrice();
+    }
+
+    const domenaLata = document.getElementById('domena_lata');
+    const domenaLataVal = document.getElementById('domenaLataVal');
+    domenaLata.addEventListener('input', () => {
+      const y = parseInt(domenaLata.value, 10);
+      domenaLataVal.textContent = y === 1 ? '1 rok' : (y < 5 ? y + ' lata' : y + ' lat');
+      updatePrice();
+    });
+
+    const hostingSlider = document.getElementById('hosting_gb_slider');
+    const hostingGbVal = document.getElementById('hostingGbVal');
+    let hostingOkres = 'month';
+
+    hostingSlider.addEventListener('input', () => {
+      hostingGbVal.textContent = plans[parseInt(hostingSlider.value, 10)].gb + ' GB';
+      updatePrice();
+    });
+
+    document.querySelectorAll('#hostingOkresGroup .toggle-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#hostingOkresGroup .toggle-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        hostingOkres = b.dataset.v;
+        updatePrice();
+      });
+    });
+
+    function currentPrice(){
+      const t = currentType();
+      let total = 0;
+      if (t === 'domena' || t === 'oba') total += domainPriceFn(parseInt(domenaLata.value, 10));
+      if (t === 'hosting' || t === 'oba') {
+        const plan = plans[parseInt(hostingSlider.value, 10)];
+        total += hostingOkres === 'year' ? plan.year : plan.month;
+      }
+      return total;
+    }
+
+    function updatePrice(){ priceAmount.textContent = currentPrice() + ' zł'; }
+
+    typeRadios.forEach(r => r.addEventListener('change', updateSections));
+    updateSections();
+
+    function orderCode(){
+      const d = new Date();
+      const ymd = String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+      const rnd = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+      return `LH-${ymd}-${rnd}`;
+    }
+
+    const form = document.getElementById('orderForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const errorBox = document.getElementById('errorBox');
+    const confirmBox = document.getElementById('confirmBox');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('active');
+
+      const t = currentType();
+      const imie = document.getElementById('imie').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const uwagi = document.getElementById('uwagi').value.trim();
+
+      if (!imie || !email) { errorBox.textContent = 'Podaj imię/nick i e-mail.'; errorBox.classList.add('active'); return; }
+
+      let opisPola = [];
+      let price = null;
+
+      if (t === 'domena' || t === 'oba') {
+        const nazwa = document.getElementById('domena_nazwa').value.trim();
+        const rozsz = document.getElementById('domena_rozszerzenie').value;
+        const lata = parseInt(domenaLata.value, 10);
+        if (!nazwa) { errorBox.textContent = 'Podaj nazwę domeny.'; errorBox.classList.add('active'); return; }
+        opisPola.push({ name: 'Domena', value: `${nazwa}${rozsz} — ${lata} ${lata === 1 ? 'rok' : (lata < 5 ? 'lata' : 'lat')}`, inline: false });
+      }
+      if (t === 'hosting' || t === 'oba') {
+        const plan = plans[parseInt(hostingSlider.value, 10)];
+        opisPola.push({ name: 'Hosting', value: `${plan.gb} GB — ${hostingOkres === 'year' ? 'rocznie' : 'miesięcznie'}`, inline: false });
+      }
+      if (t === 'custom') {
+        const opis = document.getElementById('custom_opis').value.trim();
+        if (!opis) { errorBox.textContent = 'Opisz, czego potrzebujesz.'; errorBox.classList.add('active'); return; }
+        opisPola.push({ name: 'Custom — opis', value: opis, inline: false });
+      } else {
+        price = currentPrice();
+      }
+
+      opisPola.push({ name: 'Klient', value: `${imie} (${email})`, inline: false });
+      if (uwagi) opisPola.push({ name: 'Uwagi', value: uwagi, inline: false });
+      opisPola.push({ name: 'Cena', value: price !== null ? price + ' zł' : 'do ustalenia', inline: false });
+
+      const code = orderCode();
+
+      const payload = {
+        username: 'Lemur Host — Zamówienia',
+        embeds: [{
+          title: `Nowe zamówienie — ${code}`,
+          color: parseInt('E0A458', 16),
+          fields: opisPola,
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Wysyłam…';
+
+      try {
+        const res = await fetch(DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Discord webhook error ' + res.status);
+
+        form.style.display = 'none';
+        document.getElementById('confirmCode').textContent = code;
+        document.getElementById('confirmAmount').textContent = price !== null ? price + ' zł' : 'Wycena indywidualna — odezwiemy się w ciągu 24h.';
+        document.getElementById('tipplyBtn').href = TIPPLY_URL;
+        if (price === null) document.getElementById('tipplyBtn').style.display = 'none';
+        confirmBox.classList.add('active');
+      } catch (err) {
+        errorBox.textContent = 'Nie udało się wysłać zamówienia. Spróbuj ponownie albo napisz bezpośrednio na Discordzie.';
+        errorBox.classList.add('active');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Złóż zamówienie';
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
