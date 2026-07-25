@@ -854,7 +854,6 @@
 
 <script>
   (function(){
-    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1525558768631287958/XCao1bOPQbQf5hq32azBBA1rkJq_ES0tP5vSpAlFBzb0Hb34GGoz_oqGD4qQJc2nr0xg';
     const TIPPLY_URL = 'https://tipply.pl/@lemurhost';
 
     const domainPriceFn = years => {
@@ -952,13 +951,6 @@
     typeRadios.forEach(r => r.addEventListener('change', updateSections));
     updateSections();
 
-    function orderCode(){
-      const d = new Date();
-      const ymd = String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-      const rnd = String(Math.floor(Math.random()*10000)).padStart(4,'0');
-      return `LH-${ymd}-${rnd}`;
-    }
-
     const form = document.getElementById('orderForm');
     const submitBtn = document.getElementById('submitBtn');
     const errorBox = document.getElementById('errorBox');
@@ -975,62 +967,43 @@
 
       if (!imie || !email) { errorBox.textContent = 'Podaj imię/nick i e-mail.'; errorBox.classList.add('active'); return; }
 
-      let opisPola = [];
-      let price = null;
+      const orderData = { typ: t, imie, email, uwagi };
 
       if (t === 'domena' || t === 'oba') {
         const nazwa = document.getElementById('domena_nazwa').value.trim();
-        const rozsz = document.getElementById('domena_rozszerzenie').value;
-        const lata = parseInt(domenaLata.value, 10);
         if (!nazwa) { errorBox.textContent = 'Podaj nazwę domeny.'; errorBox.classList.add('active'); return; }
-        opisPola.push({ name: 'Domena', value: `${nazwa}${rozsz} — ${lata} ${lata === 1 ? 'rok' : (lata < 5 ? 'lata' : 'lat')}`, inline: false });
+        orderData.domena_nazwa = nazwa;
+        orderData.domena_rozszerzenie = document.getElementById('domena_rozszerzenie').value;
+        orderData.domena_lata = parseInt(domenaLata.value, 10);
       }
       if (t === 'hosting' || t === 'oba') {
-        const pkg = packages[selectedPackage()];
-        opisPola.push({ name: 'Hosting', value: `${pkg.name} — ${hostingOkres === 'year' ? 'rocznie' : 'miesięcznie'}`, inline: false });
-        const addons = selectedAddons();
-        if (addons.length) {
-          const addonList = addons.map(key => addonPrices[key].name).join(', ');
-          opisPola.push({ name: 'Dodatki', value: addonList, inline: false });
-        }
+        orderData.hosting_pkg = selectedPackage();
+        orderData.hosting_okres = hostingOkres;
+        orderData.addons = selectedAddons();
       }
-      price = currentPrice();
-
-      opisPola.push({ name: 'Klient', value: `${imie} (${email})`, inline: false });
-      if (uwagi) opisPola.push({ name: 'Uwagi', value: uwagi, inline: false });
-      opisPola.push({ name: 'Cena', value: price !== null ? price + ' zł' : 'do ustalenia', inline: false });
-
-      const code = orderCode();
-
-      const payload = {
-        username: 'Lemur Host — Zamówienia',
-        embeds: [{
-          title: `Nowe zamówienie — ${code}`,
-          color: parseInt('E0A458', 16),
-          fields: opisPola,
-          timestamp: new Date().toISOString()
-        }]
-      };
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłam…';
 
       try {
-        const res = await fetch(DISCORD_WEBHOOK_URL, {
+        // Zamówienie idzie do naszego własnego serwera (submit-order.php).
+        // To PHP dolicza ostateczną cenę i wysyła wiadomość na Discord —
+        // webhook nigdy nie trafia do przeglądarki użytkownika.
+        const res = await fetch('submit-order.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(orderData)
         });
-        if (!res.ok) throw new Error('Discord webhook error ' + res.status);
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || ('Błąd serwera ' + res.status));
 
         form.style.display = 'none';
-        document.getElementById('confirmCode').textContent = code;
-        document.getElementById('confirmAmount').textContent = price !== null ? price + ' zł' : 'Wycena indywidualna — odezwiemy się w ciągu 24h.';
+        document.getElementById('confirmCode').textContent = data.code;
+        document.getElementById('confirmAmount').textContent = data.price + ' zł';
         document.getElementById('tipplyBtn').href = TIPPLY_URL;
-        if (price === null) document.getElementById('tipplyBtn').style.display = 'none';
         confirmBox.classList.add('active');
       } catch (err) {
-        errorBox.textContent = 'Nie udało się wysłać zamówienia. Spróbuj ponownie albo napisz bezpośrednio na Discordzie.';
+        errorBox.textContent = (err.message || 'Nie udało się wysłać zamówienia.') + ' Spróbuj ponownie albo napisz bezpośrednio na Discordzie.';
         errorBox.classList.add('active');
       } finally {
         submitBtn.disabled = false;
