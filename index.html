@@ -616,6 +616,11 @@
     <p class="order-sub" style="margin-top:-10px;">Masz pytania albo potrzebujesz czegoś nietypowego? Napisz na <a href="https://discord.gg/4Fsaea3sFt" target="_blank" rel="noopener">Discordzie</a>.</p>
 
     <form id="orderForm">
+      <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
+        <label for="website">Zostaw puste</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
 
       <fieldset>
         <legend>Co zamawiasz?</legend>
@@ -723,11 +728,13 @@
 </footer>
 
 <script>
+  let orderFormRenderedAt = 0;
   function showOrder(typ, pkg){
     document.getElementById('homeView').style.display = 'none';
     document.getElementById('orderView').style.display = 'block';
     document.body.classList.add('order-active');
     window.scrollTo(0, 0);
+    orderFormRenderedAt = Date.now();
     if (typ && ['domena','hosting','oba'].includes(typ)) {
       const radio = document.getElementById('typ-' + typ);
       if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
@@ -968,6 +975,8 @@
       if (!imie || !email) { errorBox.textContent = 'Podaj imię/nick i e-mail.'; errorBox.classList.add('active'); return; }
 
       const orderData = { typ: t, imie, email, uwagi };
+      orderData.website = document.getElementById('website').value;
+      orderData.rendered_at = orderFormRenderedAt;
 
       if (t === 'domena' || t === 'oba') {
         const nazwa = document.getElementById('domena_nazwa').value.trim();

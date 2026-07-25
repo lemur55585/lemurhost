@@ -4,12 +4,25 @@
 // Webhook Discorda żyje TYLKO tutaj, po stronie serwera.
 // Ten plik nigdy nie jest widoczny dla przeglądarki — PHP wykonuje się
 // na serwerze, a do klienta trafia wyłącznie wynik (JSON).
+//
+// Zabezpieczenia w tym pliku:
+//  1) Honeypot — ukryte pole, które wypełniają tylko boty.
+//  2) Minimalny czas wypełniania formularza — odrzuca błyskawiczne
+//     zgłoszenia typowe dla botów.
+//  3) Rate limiting per adres IP — plik na dysku, bez bazy danych.
+//  4) Limity długości pól i limit rozmiaru całego żądania.
+//  5) Cena zawsze liczona od nowa po stronie serwera.
 // ============================================================
 
 header('Content-Type: application/json; charset=utf-8');
 
 // --- KONFIGURACJA: podmień na swój prawdziwy webhook ---
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1525558768631287958/XCao1bOPQbQf5hq32azBBA1rkJq_ES0tP5vSpAlFBzb0Hb34GGoz_oqGD4qQJc2nr0xg';
+
+const RATE_LIMIT_MAX = 5;          // maks. zgłoszeń...
+const RATE_LIMIT_WINDOW = 900;     // ...na okno czasowe w sekundach (900 = 15 minut)
+const MIN_FILL_SECONDS = 3;        // formularz wypełniony szybciej niż to = podejrzane
+const MAX_BODY_BYTES = 20000;      // maksymalny rozmiar żądania (bajty)
 
 function respond(array $data, int $status = 200): void {
     http_response_code($status);
@@ -21,20 +34,90 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(['ok' => false, 'error' => 'Method not allowed'], 405);
 }
 
+// ---- Limit rozmiaru żądania ----
+$rawLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+if ($rawLength > MAX_BODY_BYTES) {
+    respond(['ok' => false, 'error' => 'Żądanie zbyt duże.'], 413);
+}
+
+// ============================================================
+// Rate limiting per IP (plik JSON, bez bazy danych)
+// ============================================================
+function client_ip(): string {
+    return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+}
+
+function rate_limit_check(): void {
+    $dir = __DIR__ . '/data';
+    if (!is_dir($dir)) @mkdir($dir, 0777, true);
+    $file = $dir . '/ratelimit.json';
+
+    $fh = fopen($file, 'c+');
+    if (!$fh) return; // jeśli nie da się zapisać, nie blokujemy zamówień z tego powodu
+    flock($fh, LOCK_EX);
+
+    $raw = stream_get_contents($fh);
+    $store = json_decode($raw ?: '{}', true);
+    if (!is_array($store)) $store = [];
+
+    $ip = client_ip();
+    $now = time();
+    $hits = array_values(array_filter($store[$ip] ?? [], fn($t) => $t > $now - RATE_LIMIT_WINDOW));
+
+    if (count($hits) >= RATE_LIMIT_MAX) {
+        flock($fh, LOCK_UN);
+        fclose($fh);
+        respond(['ok' => false, 'error' => 'Zbyt wiele zgłoszeń w krótkim czasie. Spróbuj ponownie za kilka minut.'], 429);
+    }
+
+    $hits[] = $now;
+    $store[$ip] = $hits;
+
+    // Sprzątanie: usuń adresy IP bez aktywności w oknie czasowym
+    foreach ($store as $key => $timestamps) {
+        $fresh = array_values(array_filter($timestamps, fn($t) => $t > $now - RATE_LIMIT_WINDOW));
+        if (empty($fresh)) unset($store[$key]); else $store[$key] = $fresh;
+    }
+
+    ftruncate($fh, 0);
+    rewind($fh);
+    fwrite($fh, json_encode($store));
+    flock($fh, LOCK_UN);
+    fclose($fh);
+}
+
+rate_limit_check();
+
+// ============================================================
+// Wczytanie i podstawowa walidacja danych
+// ============================================================
 $raw = file_get_contents('php://input');
 $in = json_decode($raw, true);
 if (!is_array($in)) {
     respond(['ok' => false, 'error' => 'Nieprawidłowe dane.'], 400);
 }
 
-function s(array $a, string $key): string {
-    return isset($a[$key]) ? trim((string) $a[$key]) : '';
+function s(array $a, string $key, int $maxLen = 300): string {
+    $v = isset($a[$key]) ? trim((string) $a[$key]) : '';
+    return mb_substr($v, 0, $maxLen);
 }
 
-$typ    = s($in, 'typ');
-$imie   = s($in, 'imie');
-$email  = s($in, 'email');
-$uwagi  = s($in, 'uwagi');
+// ---- Honeypot: ukryte pole "website" — boty je wypełniają, ludzie go nie widzą ----
+if (s($in, 'website', 200) !== '') {
+    // Udajemy sukces, żeby bot nie wiedział, że został zablokowany.
+    respond(['ok' => true, 'code' => 'LH-000000-0000', 'price' => 0]);
+}
+
+// ---- Minimalny czas wypełniania formularza ----
+$renderedAt = (float) ($in['rendered_at'] ?? 0);
+if ($renderedAt <= 0 || (microtime(true) * 1000 - $renderedAt) < MIN_FILL_SECONDS * 1000) {
+    respond(['ok' => false, 'error' => 'Zgłoszenie odrzucone. Spróbuj ponownie.'], 400);
+}
+
+$typ    = s($in, 'typ', 20);
+$imie   = s($in, 'imie', 80);
+$email  = s($in, 'email', 190);
+$uwagi  = s($in, 'uwagi', 900);
 
 if (!in_array($typ, ['domena', 'hosting', 'oba'], true)) {
     respond(['ok' => false, 'error' => 'Nieprawidłowy typ zamówienia.'], 400);
@@ -69,10 +152,11 @@ $fields = [];
 $price = 0;
 
 if ($typ === 'domena' || $typ === 'oba') {
-    $nazwa = s($in, 'domena_nazwa');
-    $rozsz = s($in, 'domena_rozszerzenie');
-    $lata  = (int) s($in, 'domena_lata');
+    $nazwa = s($in, 'domena_nazwa', 63);
+    $rozsz = s($in, 'domena_rozszerzenie', 10);
+    $lata  = (int) s($in, 'domena_lata', 4);
     if ($nazwa === '') respond(['ok' => false, 'error' => 'Podaj nazwę domeny.'], 400);
+    if (!preg_match('/^[a-zA-Z0-9-]+$/', $nazwa)) respond(['ok' => false, 'error' => 'Nazwa domeny może zawierać tylko litery, cyfry i myślnik.'], 400);
     if (!in_array($rozsz, ['.com', '.net', '.org', '.com.pl'], true)) respond(['ok' => false, 'error' => 'Nieprawidłowe rozszerzenie domeny.'], 400);
     $lata = max(1, min(10, $lata));
     $lataLabel = $lata === 1 ? 'rok' : ($lata < 5 ? 'lata' : 'lat');
@@ -81,15 +165,16 @@ if ($typ === 'domena' || $typ === 'oba') {
 }
 
 if ($typ === 'hosting' || $typ === 'oba') {
-    $pkgKey = s($in, 'hosting_pkg');
-    $okres  = s($in, 'hosting_okres');
+    $pkgKey = s($in, 'hosting_pkg', 20);
+    $okres  = s($in, 'hosting_okres', 10);
     if (!isset(PACKAGES[$pkgKey])) respond(['ok' => false, 'error' => 'Nieprawidłowy pakiet hostingu.'], 400);
     if (!in_array($okres, ['month', 'year'], true)) respond(['ok' => false, 'error' => 'Nieprawidłowy okres rozliczeniowy.'], 400);
     $pkg = PACKAGES[$pkgKey];
     $price += $okres === 'year' ? $pkg['year'] : $pkg['month'];
     $fields[] = ['name' => 'Hosting', 'value' => $pkg['name'] . ' — ' . ($okres === 'year' ? 'rocznie' : 'miesięcznie'), 'inline' => false];
 
-    $addonKeys = is_array($in['addons'] ?? null) ? $in['addons'] : [];
+    $addonKeysRaw = is_array($in['addons'] ?? null) ? $in['addons'] : [];
+    $addonKeys = array_slice(array_values(array_filter($addonKeysRaw, 'is_string')), 0, 10);
     $addonNames = [];
     foreach ($addonKeys as $key) {
         if (!isset(ADDONS[$key])) continue;
@@ -103,7 +188,7 @@ if ($typ === 'hosting' || $typ === 'oba') {
 }
 
 $fields[] = ['name' => 'Klient', 'value' => "{$imie} ({$email})", 'inline' => false];
-if ($uwagi !== '') $fields[] = ['name' => 'Uwagi', 'value' => mb_substr($uwagi, 0, 900), 'inline' => false];
+if ($uwagi !== '') $fields[] = ['name' => 'Uwagi', 'value' => $uwagi, 'inline' => false];
 $fields[] = ['name' => 'Cena', 'value' => $price . ' zł', 'inline' => false];
 
 // ---- Numer zamówienia ----
