@@ -429,12 +429,23 @@
           <span class="plan">Domena</span>
           <div class="calc-row">
             <div class="calc-row-head">
+              <label for="domainExt">Rozszerzenie</label>
+            </div>
+            <select id="domainExt" class="mono" style="width:100%; background:#080C10; border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; color:var(--text); font-size:.9rem;">
+              <option value=".pl">.pl</option>
+              <option value=".com">.com</option>
+              <option value=".com.pl">.com.pl</option>
+              <option value=".net">.net</option>
+            </select>
+          </div>
+          <div class="calc-row">
+            <div class="calc-row-head">
               <label for="domainYears">Liczba lat</label>
               <span class="calc-value mono" id="domainYearsLabel">1 rok</span>
             </div>
             <input type="range" id="domainYears" min="1" max="10" step="1" value="1">
           </div>
-          <div class="calc-price"><span id="domainPrice">60</span> zł<span class="calc-price-note"> łącznie</span></div>
+          <div class="calc-price"><span id="domainPrice">40</span> zł<span class="calc-price-note"> łącznie</span></div>
           <a href="#" onclick="showOrder('domena'); return false;" class="btn btn-ghost">Zarejestruj domenę</a>
         </div>
 
@@ -640,10 +651,10 @@
           <div class="field">
             <label for="domena_rozszerzenie">Rozszerzenie</label>
             <select id="domena_rozszerzenie">
+              <option value=".pl">.pl</option>
               <option value=".com">.com</option>
-              <option value=".net">.net</option>
-              <option value=".org">.org</option>
               <option value=".com.pl">.com.pl</option>
+              <option value=".net">.net</option>
             </select>
           </div>
         </div>
@@ -753,7 +764,7 @@
 </script>
 
 <script>
-  const exts = ['.com', '.net', '.org', '.com.pl'];
+  const exts = ['.pl', '.com', '.com.pl', '.net'];
   const input = document.getElementById('domainInput');
   const btn = document.getElementById('checkBtn');
   const results = document.getElementById('checkerResults');
@@ -796,7 +807,7 @@
     const nameInput = document.getElementById('domena_nazwa');
     const extSelect = document.getElementById('domena_rozszerzenie');
     if (nameInput) nameInput.value = name;
-    if (extSelect && ['.com','.net','.org','.com.pl'].includes(ext)) extSelect.value = ext;
+    if (extSelect && ['.pl','.com','.com.pl','.net'].includes(ext)) extSelect.value = ext;
   }
 
   async function checkDomain(domain){
@@ -840,12 +851,23 @@
 </script>
 
 <script>
-  function domainPrice(years){
-    const base = { 1: 60, 2: 65, 3: 85, 4: 140 };
-    if (years <= 4) return base[years];
-    return 140 + 60 * (years - 4);
+  // Ceny domen zależą od rozszerzenia:
+  // .com   — 1 rok 60 zł, 2 lata 65 zł, 3 lata 85 zł, 4 lata 140 zł, każdy kolejny rok +60 zł
+  // .pl    — pierwszy rok 40 zł, każdy kolejny rok 60 zł
+  // .com.pl— pierwszy rok 15 zł, każdy kolejny rok 50 zł
+  // .net   — pierwszy rok 70 zł, każdy kolejny rok 100 zł
+  function domainPrice(ext, years){
+    years = Math.max(1, Math.min(10, years));
+    if (ext === '.com') {
+      const base = { 1: 60, 2: 65, 3: 85, 4: 140 };
+      return years <= 4 ? base[years] : 140 + 60 * (years - 4);
+    }
+    const rates = { '.pl': [40, 60], '.com.pl': [15, 50], '.net': [70, 100] };
+    const [first, renewal] = rates[ext] || rates['.pl'];
+    return first + renewal * (years - 1);
   }
 
+  const domainExt = document.getElementById('domainExt');
   const domainYears = document.getElementById('domainYears');
   const domainYearsLabel = document.getElementById('domainYearsLabel');
   const domainPriceEl = document.getElementById('domainPrice');
@@ -853,9 +875,10 @@
   function updateDomainCalc(){
     const years = parseInt(domainYears.value, 10);
     domainYearsLabel.textContent = years === 1 ? '1 rok' : (years < 5 ? years + ' lata' : years + ' lat');
-    domainPriceEl.textContent = domainPrice(years);
+    domainPriceEl.textContent = domainPrice(domainExt.value, years);
   }
   domainYears.addEventListener('input', updateDomainCalc);
+  domainExt.addEventListener('change', updateDomainCalc);
   updateDomainCalc();
 </script>
 
@@ -863,9 +886,15 @@
   (function(){
     const TIPPLY_URL = 'https://tipply.pl/@lemurhost';
 
-    const domainPriceFn = years => {
-      const base = {1:60, 2:65, 3:85, 4:140};
-      return years <= 4 ? base[years] : 140 + 60 * (years - 4);
+    const domainPriceFn = (ext, years) => {
+      years = Math.max(1, Math.min(10, years));
+      if (ext === '.com') {
+        const base = {1:60, 2:65, 3:85, 4:140};
+        return years <= 4 ? base[years] : 140 + 60 * (years - 4);
+      }
+      const rates = { '.pl': [40, 60], '.com.pl': [15, 50], '.net': [70, 100] };
+      const [first, renewal] = rates[ext] || rates['.pl'];
+      return first + renewal * (years - 1);
     };
     const packages = {
       mini:  { name: 'LemurHost MINI',  month: 5,  year: 50  },
@@ -906,6 +935,7 @@
       domenaLataVal.textContent = y === 1 ? '1 rok' : (y < 5 ? y + ' lata' : y + ' lat');
       updatePrice();
     });
+    document.getElementById('domena_rozszerzenie').addEventListener('change', updatePrice);
 
     const hostingPkgRadios = document.querySelectorAll('input[name="hosting_pkg"]');
     let hostingOkres = 'month';
@@ -944,7 +974,10 @@
     function currentPrice(){
       const t = currentType();
       let total = 0;
-      if (t === 'domena' || t === 'oba') total += domainPriceFn(parseInt(domenaLata.value, 10));
+      if (t === 'domena' || t === 'oba') {
+        const ext = document.getElementById('domena_rozszerzenie').value;
+        total += domainPriceFn(ext, parseInt(domenaLata.value, 10));
+      }
       if (t === 'hosting' || t === 'oba') {
         const pkg = packages[selectedPackage()];
         total += hostingOkres === 'year' ? pkg.year : pkg.month;

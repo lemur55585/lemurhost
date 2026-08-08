@@ -126,11 +126,19 @@ if ($imie === '') respond(['ok' => false, 'error' => 'Podaj imię lub nick.'], 4
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) respond(['ok' => false, 'error' => 'Podaj poprawny adres e-mail.'], 400);
 
 // ---- Ceny liczone WYŁĄCZNIE po stronie serwera (nie ufamy przeglądarce) ----
-function domainPrice(int $years): int {
+// .com   — 1 rok 60 zł, 2 lata 65 zł, 3 lata 85 zł, 4 lata 140 zł, każdy kolejny rok +60 zł
+// .pl    — pierwszy rok 40 zł, każdy kolejny rok 60 zł
+// .com.pl— pierwszy rok 15 zł, każdy kolejny rok 50 zł
+// .net   — pierwszy rok 70 zł, każdy kolejny rok 100 zł
+function domainPrice(string $ext, int $years): int {
     $years = max(1, min(10, $years));
-    $base = [1 => 60, 2 => 65, 3 => 85, 4 => 140];
-    if ($years <= 4) return $base[$years];
-    return 140 + 60 * ($years - 4);
+    if ($ext === '.com') {
+        $base = [1 => 60, 2 => 65, 3 => 85, 4 => 140];
+        return $years <= 4 ? $base[$years] : 140 + 60 * ($years - 4);
+    }
+    $rates = ['.pl' => [40, 60], '.com.pl' => [15, 50], '.net' => [70, 100]];
+    [$first, $renewal] = $rates[$ext] ?? $rates['.pl'];
+    return $first + $renewal * ($years - 1);
 }
 
 const PACKAGES = [
@@ -157,11 +165,11 @@ if ($typ === 'domena' || $typ === 'oba') {
     $lata  = (int) s($in, 'domena_lata', 4);
     if ($nazwa === '') respond(['ok' => false, 'error' => 'Podaj nazwę domeny.'], 400);
     if (!preg_match('/^[a-zA-Z0-9-]+$/', $nazwa)) respond(['ok' => false, 'error' => 'Nazwa domeny może zawierać tylko litery, cyfry i myślnik.'], 400);
-    if (!in_array($rozsz, ['.com', '.net', '.org', '.com.pl'], true)) respond(['ok' => false, 'error' => 'Nieprawidłowe rozszerzenie domeny.'], 400);
+    if (!in_array($rozsz, ['.pl', '.com', '.com.pl', '.net'], true)) respond(['ok' => false, 'error' => 'Nieprawidłowe rozszerzenie domeny.'], 400);
     $lata = max(1, min(10, $lata));
     $lataLabel = $lata === 1 ? 'rok' : ($lata < 5 ? 'lata' : 'lat');
     $fields[] = ['name' => 'Domena', 'value' => "{$nazwa}{$rozsz} — {$lata} {$lataLabel}", 'inline' => false];
-    $price += domainPrice($lata);
+    $price += domainPrice($rozsz, $lata);
 }
 
 if ($typ === 'hosting' || $typ === 'oba') {
