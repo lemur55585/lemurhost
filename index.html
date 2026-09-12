@@ -996,9 +996,38 @@
     const errorBox = document.getElementById('errorBox');
     const confirmBox = document.getElementById('confirmBox');
 
+    // KONFIGURACJA — wklej tu swój webhook Discorda.
+    // Uwaga: to jest widoczne w kodzie źródłowym strony (GitHub Pages nie
+    // obsługuje PHP, więc nie da się tego ukryć po stronie serwera). Jeśli
+    // zobaczysz spam na kanale, usuń ten webhook w ustawieniach Discorda
+    // i wygeneruj nowy, wklejając go tutaj ponownie.
+    const DISCORD_WEBHOOK_URL = 'TU_WKLEJ_WEBHOOK';
+
+    function orderCode(){
+      const d = new Date();
+      const ymd = String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+      const rnd = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+      return `LH-${ymd}-${rnd}`;
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorBox.classList.remove('active');
+
+      // Honeypot — jeśli ukryte pole jest wypełnione, to bot. Udajemy sukces.
+      if (document.getElementById('website').value.trim() !== '') {
+        form.style.display = 'none';
+        document.getElementById('confirmCode').textContent = orderCode();
+        document.getElementById('confirmAmount').textContent = '0 zł';
+        confirmBox.classList.add('active');
+        return;
+      }
+      // Zbyt szybkie wysłanie formularza (poniżej 3 sek. od pokazania) = podejrzane.
+      if (!orderFormRenderedAt || (Date.now() - orderFormRenderedAt) < 3000) {
+        errorBox.textContent = 'Spróbuj ponownie za chwilę.';
+        errorBox.classList.add('active');
+        return;
+      }
 
       const t = currentType();
       const imie = document.getElementById('imie').value.trim();
@@ -1007,45 +1036,62 @@
 
       if (!imie || !email) { errorBox.textContent = 'Podaj imię/nick i e-mail.'; errorBox.classList.add('active'); return; }
 
-      const orderData = { typ: t, imie, email, uwagi };
-      orderData.website = document.getElementById('website').value;
-      orderData.rendered_at = orderFormRenderedAt;
+      let opisPola = [];
+      let price = 0;
 
       if (t === 'domena' || t === 'oba') {
         const nazwa = document.getElementById('domena_nazwa').value.trim();
+        const rozsz = document.getElementById('domena_rozszerzenie').value;
+        const lata = parseInt(domenaLata.value, 10);
         if (!nazwa) { errorBox.textContent = 'Podaj nazwę domeny.'; errorBox.classList.add('active'); return; }
-        orderData.domena_nazwa = nazwa;
-        orderData.domena_rozszerzenie = document.getElementById('domena_rozszerzenie').value;
-        orderData.domena_lata = parseInt(domenaLata.value, 10);
+        const lataLabel = lata === 1 ? 'rok' : (lata < 5 ? 'lata' : 'lat');
+        opisPola.push({ name: 'Domena', value: `${nazwa}${rozsz} — ${lata} ${lataLabel}`, inline: false });
+        price += domainPriceFn(rozsz, lata);
       }
       if (t === 'hosting' || t === 'oba') {
-        orderData.hosting_pkg = selectedPackage();
-        orderData.hosting_okres = hostingOkres;
-        orderData.addons = selectedAddons();
+        const pkg = packages[selectedPackage()];
+        price += hostingOkres === 'year' ? pkg.year : pkg.month;
+        opisPola.push({ name: 'Hosting', value: `${pkg.name} — ${hostingOkres === 'year' ? 'rocznie' : 'miesięcznie'}`, inline: false });
+        const addons = selectedAddons();
+        if (addons.length) {
+          price += addonsTotal();
+          opisPola.push({ name: 'Dodatki', value: addons.map(k => addonPrices[k].name).join(', '), inline: false });
+        }
       }
+
+      opisPola.push({ name: 'Klient', value: `${imie} (${email})`, inline: false });
+      if (uwagi) opisPola.push({ name: 'Uwagi', value: uwagi.slice(0, 900), inline: false });
+      opisPola.push({ name: 'Cena', value: price + ' zł', inline: false });
+
+      const code = orderCode();
+      const payload = {
+        username: 'Lemur Host — Zamówienia',
+        embeds: [{
+          title: `Nowe zamówienie — ${code}`,
+          color: parseInt('3AA8F0', 16),
+          fields: opisPola,
+          timestamp: new Date().toISOString()
+        }]
+      };
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłam…';
 
       try {
-        // Zamówienie idzie do naszego własnego serwera (submit-order.php).
-        // To PHP dolicza ostateczną cenę i wysyła wiadomość na Discord —
-        // webhook nigdy nie trafia do przeglądarki użytkownika.
-        const res = await fetch('submit-order.php', {
+        const res = await fetch(DISCORD_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData)
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || ('Błąd serwera ' + res.status));
+        if (!res.ok) throw new Error('Błąd wysyłki (' + res.status + ')');
 
         form.style.display = 'none';
-        document.getElementById('confirmCode').textContent = data.code;
-        document.getElementById('confirmAmount').textContent = data.price + ' zł';
+        document.getElementById('confirmCode').textContent = code;
+        document.getElementById('confirmAmount').textContent = price + ' zł';
         document.getElementById('tipplyBtn').href = TIPPLY_URL;
         confirmBox.classList.add('active');
       } catch (err) {
-        errorBox.textContent = (err.message || 'Nie udało się wysłać zamówienia.') + ' Spróbuj ponownie albo napisz bezpośrednio na Discordzie.';
+        errorBox.textContent = 'Nie udało się wysłać zamówienia. Spróbuj ponownie albo napisz bezpośrednio na Discordzie.';
         errorBox.classList.add('active');
       } finally {
         submitBtn.disabled = false;
