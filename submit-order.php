@@ -19,7 +19,7 @@ header('Content-Type: application/json; charset=utf-8');
 // --- KONFIGURACJA: wklej tu SWÓJ nowy webhook, lokalnie w tym pliku na dysku ---
 // NIE wysyłaj tej wartości na czacie z żadnym AI (łącznie ze mną) — edytuj wyłącznie
 // bezpośrednio w pliku, na swoim komputerze / serwerze.
-const DISCORD_WEBHOOK_URL = 'TU_WKLEJ_NOWY_WEBHOOK';
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1525558768631287958/XCao1bOPQbQf5hq32azBBA1rkJq_ES0tP5vSpAlFBzb0Hb34GGoz_oqGD4qQJc2nr0xg';
 
 const RATE_LIMIT_MAX = 5;          // maks. zgłoszeń...
 const RATE_LIMIT_WINDOW = 900;     // ...na okno czasowe w sekundach (900 = 15 minut)
